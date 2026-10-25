@@ -79,7 +79,8 @@ for (const vp of VIEWPORTS) {
       const menu = page.getByTestId('mobile-menu');
       await expect(menu).toBeVisible();
       await menu.getByRole('link', { name: 'AI Upscaler' }).click();
-      await expect(page).toHaveURL(/\/studio/);
+      // Logged out, the studio gate redirects to /login (fixed 2026-10-25).
+      await expect(page).toHaveURL(/\/login/);
       // Reopen and close via the toggle.
       await page.getByTestId('mobile-menu-button').click();
       await expect(page.getByTestId('mobile-menu')).toBeVisible();

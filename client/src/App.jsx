@@ -1,6 +1,43 @@
 import { Link, Route, Routes, useNavigate } from 'react-router-dom';
 import { Coins, Zap, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { Component, useState } from 'react';
+
+// Safety net only: the root causes (bad payloads, corrupt auth state) are
+// fixed in api.js/Studio.jsx. If a route still throws during render, the
+// whole app must not go blank — show this fallback instead.
+class RouteErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+          <h1 className="font-display text-3xl font-extrabold text-white">Something went wrong</h1>
+          <p className="mt-2 text-slate-400">
+            The page hit an unexpected error. Reloading usually fixes it.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+            <button type="button" onClick={() => window.location.reload()}
+              className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
+              Reload page
+            </button>
+            <Link to="/" className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10">
+              Go home
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx';
 import Home from './pages/Home.jsx';
 import Studio from './pages/Studio.jsx';
@@ -31,8 +68,10 @@ function Nav() {
           <span className="font-display truncate text-lg font-extrabold text-white">UpscaleAI</span>
           <span className="hidden shrink-0 text-xs text-slate-500 sm:block">Enhance Beyond Limits</span>
         </Link>
-        {/* Desktop nav: unchanged, hidden below md where the hamburger takes over. */}
-        <nav className="hidden items-center gap-1 text-sm sm:gap-3 md:flex">
+        {/* Desktop nav: hidden below lg, where the hamburger takes over.
+            At md (768px) the full link row wrapped onto two lines and cut
+            the logo, so the hamburger breakpoint moved up to lg. */}
+        <nav className="hidden items-center gap-1 text-sm sm:gap-3 lg:flex">
           <Link to="/studio" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">AI Upscaler</Link>
           <a href="/#features" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Features</a>
           <a href="/#pricing" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Pricing</a>
@@ -61,7 +100,7 @@ function Nav() {
           </Link>
         </nav>
         {/* Mobile: hamburger only (plus the primary CTA, which fits alone). */}
-        <div className="flex shrink-0 items-center gap-2 md:hidden">
+        <div className="flex shrink-0 items-center gap-2 lg:hidden">
           <Link to="/studio" onClick={() => setOpen(false)}
             className="hidden min-h-11 items-center rounded-full bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] min-[380px]:inline-flex">
             Upscale Image
@@ -74,7 +113,7 @@ function Nav() {
         </div>
       </div>
       {open && (
-        <nav data-testid="mobile-menu" className="border-t border-white/10 px-4 py-2 text-sm md:hidden">
+        <nav data-testid="mobile-menu" className="border-t border-white/10 px-4 py-2 text-sm lg:hidden">
           {user && (
             <p data-testid="mobile-menu-credits" className="flex min-h-11 items-center gap-1.5 px-3 font-semibold text-white">
               <Coins size={15} className="text-[#42d9f5]" /> {user.credits} credits
@@ -141,7 +180,7 @@ export default function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/studio" element={<Studio />} />
+            <Route path="/studio" element={<RouteErrorBoundary><Studio /></RouteErrorBoundary>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />

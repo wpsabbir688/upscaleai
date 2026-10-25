@@ -8,6 +8,15 @@
   command = "npm run build"
   publish = "dist"
 
+# API calls must NEVER receive the SPA fallback: previously /api/auth/me
+# returned index.html (200), which the app parsed into a fake logged-in
+# user. This rule runs first (Netlify processes redirects in order) and
+# answers API calls with a real 404 + a static JSON explanation.
+[[redirects]]
+  from = "/api/*"
+  to = "/api-offline.json"
+  status = 404
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

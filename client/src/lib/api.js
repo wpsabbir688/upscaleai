@@ -4,8 +4,33 @@
 // server's cookie/CORS settings updated (SameSite=None + Secure) — see README.
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || '/api';
 
+// Clear, honest error for a missing backend. Previously a non-JSON
+// response (e.g. the Netlify SPA fallback serving index.html for /api/*)
+// was swallowed into {} and then treated as a valid payload — which made
+// a logged-out visitor look logged in (truthy {} user, blank credits) and
+// crashed the studio when {} flowed into array code (jobs.find/.some).
+export const BACKEND_NOT_CONNECTED =
+  'The UpscaleAI server is not connected yet — the backend is not live. Please try again later.';
+
+// Network failure (server down, DNS, CORS block) is also "no backend",
+// not a cryptic TypeError.
+async function apiFetch(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch {
+    throw new Error(BACKEND_NOT_CONNECTED);
+  }
+}
+
 async function jsonOrThrow(res) {
-  const data = await res.json().catch(() => ({}));
+  const type = res.headers.get('content-type') || '';
+  if (!type.includes('application/json')) throw new Error(BACKEND_NOT_CONNECTED);
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(BACKEND_NOT_CONNECTED);
+  }
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 }
@@ -13,7 +38,7 @@ async function jsonOrThrow(res) {
 // Session lives in an HttpOnly cookie (set by the server); the frontend
 // never sees or stores a token. Same-origin fetches send the cookie.
 async function postJson(path, body) {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await apiFetch(`${BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
@@ -34,9 +59,13 @@ export async function logout() {
 }
 
 export async function getMe() {
-  const res = await fetch(`${BASE}/auth/me`);
+  const res = await apiFetch(`${BASE}/auth/me`);
   if (res.status === 401 || res.status === 403) return null;
-  return jsonOrThrow(res);
+  const data = await jsonOrThrow(res);
+  // Defense in depth: a JSON-but-wrong-shape payload must never become a
+  // truthy placeholder user (that was the blank-credit header bug).
+  if (!data || typeof data !== 'object' || typeof data.email !== 'string') return null;
+  return data;
 }
 
 export async function changePassword(currentPassword, newPassword) {
@@ -44,7 +73,7 @@ export async function changePassword(currentPassword, newPassword) {
 }
 
 export async function deleteAccount(password) {
-  const res = await fetch(`${BASE}/auth/account`, {
+  const res = await apiFetch(`${BASE}/auth/account`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password }),
@@ -53,7 +82,7 @@ export async function deleteAccount(password) {
 }
 
 export async function getCredits() {
-  const res = await fetch(`${BASE}/credits`);
+  const res = await apiFetch(`${BASE}/credits`);
   return jsonOrThrow(res);
 }
 
@@ -64,12 +93,12 @@ export async function createPaymentClaim(method, amountBdt, txnId, senderMobile)
 }
 
 export async function listMyPayments() {
-  const res = await fetch(`${BASE}/payments/mine`);
+  const res = await apiFetch(`${BASE}/payments/mine`);
   return jsonOrThrow(res);
 }
 
 export async function adminPayments() {
-  const res = await fetch(`${BASE}/admin/payments`);
+  const res = await apiFetch(`${BASE}/admin/payments`);
   return jsonOrThrow(res);
 }
 
@@ -83,27 +112,27 @@ export async function adminRejectPayment(id, reason) {
 
 // Admin (server enforces role; the UI only hides these links).
 export async function adminOverview() {
-  const res = await fetch(`${BASE}/admin/overview`);
+  const res = await apiFetch(`${BASE}/admin/overview`);
   return jsonOrThrow(res);
 }
 
 export async function adminUsers() {
-  const res = await fetch(`${BASE}/admin/users`);
+  const res = await apiFetch(`${BASE}/admin/users`);
   return jsonOrThrow(res);
 }
 
 export async function adminJobs() {
-  const res = await fetch(`${BASE}/admin/jobs`);
+  const res = await apiFetch(`${BASE}/admin/jobs`);
   return jsonOrThrow(res);
 }
 
 export async function adminHealth() {
-  const res = await fetch(`${BASE}/admin/health`);
+  const res = await apiFetch(`${BASE}/admin/health`);
   return jsonOrThrow(res);
 }
 
 export async function adminAudit() {
-  const res = await fetch(`${BASE}/admin/audit`);
+  const res = await apiFetch(`${BASE}/admin/audit`);
   return jsonOrThrow(res);
 }
 
@@ -124,7 +153,7 @@ export async function adminAdjustCredits(id, delta, reason) {
 }
 
 export async function getCapabilities() {
-  const res = await fetch(`${BASE}/capabilities`);
+  const res = await apiFetch(`${BASE}/capabilities`);
   return jsonOrThrow(res);
 }
 
@@ -132,7 +161,7 @@ export async function createJob(file, scale) {
   const fd = new FormData();
   fd.append('image', file);
   fd.append('scale', String(scale));
-  const res = await fetch(`${BASE}/jobs`, { method: 'POST', body: fd });
+  const res = await apiFetch(`${BASE}/jobs`, { method: 'POST', body: fd });
   return jsonOrThrow(res);
 }
 
@@ -140,27 +169,27 @@ export async function createBatch(files, scale) {
   const fd = new FormData();
   for (const f of files) fd.append('images', f);
   fd.append('scale', String(scale));
-  const res = await fetch(`${BASE}/batch`, { method: 'POST', body: fd });
+  const res = await apiFetch(`${BASE}/batch`, { method: 'POST', body: fd });
   return jsonOrThrow(res);
 }
 
 export async function listJobs() {
-  const res = await fetch(`${BASE}/jobs`);
+  const res = await apiFetch(`${BASE}/jobs`);
   return jsonOrThrow(res);
 }
 
 export async function getJob(id) {
-  const res = await fetch(`${BASE}/jobs/${id}`);
+  const res = await apiFetch(`${BASE}/jobs/${id}`);
   return jsonOrThrow(res);
 }
 
 export async function cancelJob(id) {
-  const res = await fetch(`${BASE}/jobs/${id}/cancel`, { method: 'POST' });
+  const res = await apiFetch(`${BASE}/jobs/${id}/cancel`, { method: 'POST' });
   return jsonOrThrow(res);
 }
 
 export async function getBatch(id) {
-  const res = await fetch(`${BASE}/batch/${id}`);
+  const res = await apiFetch(`${BASE}/batch/${id}`);
   return jsonOrThrow(res);
 }
 

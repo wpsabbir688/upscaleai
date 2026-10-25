@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Calculator, Layers, Sparkles, AlertTriangle, Archive } from 'lucide-react';
 import UploadZone from '../components/UploadZone.jsx';
 import CompareSlider from '../components/CompareSlider.jsx';
@@ -37,6 +37,10 @@ export default function Studio() {
   const refresh = useCallback(async () => {
     try {
       const list = await listJobs();
+      // Defense in depth: a non-array payload must never reach the
+      // .find/.some/.map calls below (that crash unmounted the whole app
+      // when the no-backend HTML fallback produced {}).
+      if (!Array.isArray(list)) return;
       // Keep the nav credit balance truthful (creation, refund on failure).
       authRefresh();
       setJobs(list);
@@ -147,20 +151,15 @@ export default function Studio() {
   }, [staged]);
   useEffect(() => () => { if (stagedUrl) URL.revokeObjectURL(stagedUrl); }, [stagedUrl]);
 
-  if (!authLoading && !user) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-        <h1 className="font-display text-3xl font-extrabold text-white">Log in to use the studio</h1>
-        <p className="mt-2 text-slate-400">
-          The studio requires an account so your jobs, files, and credits stay private.
-          New accounts start with 10 free credits.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link to="/login" className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">Log in</Link>
-          <Link to="/register" className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10">Create account</Link>
-        </div>
-      </div>
-    );
+  // While auth is unresolved, show a loading state — never the Studio UI
+  // (previously the full UI flashed here, and with a corrupt user it stuck).
+  if (authLoading) {
+    return <div className="mx-auto max-w-3xl px-4 py-16 text-slate-400">Loading…</div>;
+  }
+  // Logged out: redirect to login. This gate must hold both when the API
+  // errors and when it returns non-JSON (both now yield user = null).
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
