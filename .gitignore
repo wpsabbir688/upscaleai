@@ -1,0 +1,9 @@
+node_modules/
+dist/
+ai/venv/
+ai/weights/
+ai/bench_out/
+server/data/
+*.log
+.DS_Store
+__pycache__/

@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #0b1020;
+  --blue: #2563eb;
+  --violet: #8b5cf6;
+  --cyan: #42d9f5;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--ink);
+  color: #e7ecf5;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+}
+
+/* Ambient hero gradient: slow drift, no fast flashing. */
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(4%, -3%, 0) scale(1.08); }
+}
+
+.hero-glow {
+  animation: drift 18s ease-in-out infinite;
+}
+
+@keyframes scanline {
+  0% { top: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.processing-scan {
+  animation: scanline 2.4s linear infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+/* Compare slider: no text selection while dragging. */
+.compare-root {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-glow,
+  .processing-scan,
+  .pulse-soft {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
