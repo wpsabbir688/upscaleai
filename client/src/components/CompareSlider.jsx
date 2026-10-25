@@ -102,7 +102,7 @@ export default function CompareSlider({ originalUrl, enhancedUrl, alt = 'Compari
             type="button"
             data-handle="true"
             aria-label="Drag to compare"
-            className="absolute top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-white/60 bg-[#0b1020]/90 text-sm font-bold text-white shadow-lg"
+            className="absolute top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-white/60 bg-[#0b1020]/90 text-sm font-bold text-white shadow-lg"
           >
             ↔
           </button>
@@ -112,20 +112,20 @@ export default function CompareSlider({ originalUrl, enhancedUrl, alt = 'Compari
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => setZoom((z) => Math.min(4, z + 0.5))}
-          className="flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
+          className="flex min-h-11 items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
           <ZoomIn size={15} /> Zoom in
         </button>
         <button type="button" onClick={() => setZoom((z) => Math.max(1, z - 0.5))}
-          className="flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
+          className="flex min-h-11 items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
           <ZoomOut size={15} /> Zoom out
         </button>
         <span className="text-sm text-slate-400" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <button type="button" onClick={reset}
-          className="flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
+          className="flex min-h-11 items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
           <RotateCcw size={15} /> Reset
         </button>
         <button type="button" onClick={toggleFullscreen}
-          className="flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
+          className="flex min-h-11 items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm hover:bg-white/10">
           <Maximize size={15} /> {isFullscreen ? 'Exit full screen' : 'Full screen'}
         </button>
         <span className="ml-auto hidden text-xs text-slate-500 sm:block">

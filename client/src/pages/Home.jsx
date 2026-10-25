@@ -210,7 +210,7 @@ export default function Home() {
                 )}
               </ul>
               <Link to="/studio"
-                className="mt-5 block rounded-full bg-[#2563eb] py-2.5 text-center text-sm font-semibold text-white hover:bg-[#1d4ed8]">
+                className="mt-5 flex min-h-11 items-center justify-center rounded-full bg-[#2563eb] py-2.5 text-center text-sm font-semibold text-white hover:bg-[#1d4ed8]">
                 Start in the studio
               </Link>
             </div>

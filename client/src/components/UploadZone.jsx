@@ -42,10 +42,17 @@ export default function UploadZone({ onFiles, compact = false }) {
         {dragging ? <ImagePlus size={24} /> : <UploadCloud size={24} />}
       </span>
       <p className="font-display text-base font-bold text-white">
-        {dragging ? 'Drop to upload' : 'Drag & drop images here'}
+        {dragging ? 'Drop to upload' : (
+          <>
+            <span className="hidden sm:inline">Drag &amp; drop images here</span>
+            <span className="sm:hidden">Tap to choose images</span>
+          </>
+        )}
       </p>
       <p className="text-sm text-slate-400">
-        or click to browse — you can also paste an image (Ctrl+V). PNG, JPEG, WebP · max 10MB · longest side max 1024px.
+        <span className="hidden sm:inline">or click to browse — you can also paste an image (Ctrl+V). </span>
+        <span className="sm:hidden">Browse from your phone. </span>
+        PNG, JPEG, WebP · max 10MB · longest side max 1024px.
       </p>
     </div>
   );

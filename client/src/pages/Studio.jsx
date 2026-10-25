@@ -156,8 +156,8 @@ export default function Studio() {
           New accounts start with 10 free credits.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Link to="/login" className="rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">Log in</Link>
-          <Link to="/register" className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10">Create account</Link>
+          <Link to="/login" className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">Log in</Link>
+          <Link to="/register" className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10">Create account</Link>
         </div>
       </div>
     );
@@ -212,7 +212,7 @@ export default function Studio() {
                   </div>
                 </div>
                 <button type="button" onClick={startSingle} disabled={uploading}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
                   <Sparkles size={16} /> {uploading ? 'Uploading…' : `Enhance at ${scale}x`}
                 </button>
                 <button type="button" onClick={() => setStaged(null)}
@@ -227,13 +227,13 @@ export default function Studio() {
               {[2, 4].map((s) => (
                 <button key={s} type="button" role="radio" aria-checked={scale === s}
                   onClick={() => setScale(s)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${scale === s ? 'bg-[#2563eb] text-white' : 'border border-white/15 text-slate-300 hover:bg-white/10'}`}>
+                  className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold ${scale === s ? 'bg-[#2563eb] text-white' : 'border border-white/15 text-slate-300 hover:bg-white/10'}`}>
                   {s}x
                 </button>
               ))}
               {DISABLED_SCALES.map((s) => (
                 <button key={s} type="button" disabled title="Higher scales need staged upscaling, which has not been benchmarked on CPU yet."
-                  className="cursor-not-allowed rounded-full border border-white/10 px-4 py-2 text-sm text-slate-600">
+                  className="inline-flex min-h-11 cursor-not-allowed items-center rounded-full border border-white/10 px-4 py-2 text-sm text-slate-600">
                   {s}x
                 </button>
               ))}
@@ -267,7 +267,7 @@ export default function Studio() {
               </h2>
               <p className="mt-1 text-sm text-slate-400">{batch.jobs.length} job(s) created.</p>
               <a href={batchZipUrl(batch.batchId)}
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
                 <Archive size={15} /> Download ZIP of completed
               </a>
               <p className="mt-1 text-xs text-slate-500">The ZIP includes only completed images; failed jobs are listed in a notes file inside it.</p>
@@ -291,7 +291,7 @@ export default function Studio() {
                 />
               </div>
               <a href={downloadUrl(selected.id)}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
                 Download enhanced PNG
               </a>
             </section>

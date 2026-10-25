@@ -77,7 +77,7 @@ export default function Profile() {
 
       <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
         <dl className="space-y-1 text-sm">
-          <div className="flex justify-between"><dt className="text-slate-400">Email</dt><dd className="text-white">{user.email}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="shrink-0 text-slate-400">Email</dt><dd className="min-w-0 break-all text-right text-white">{user.email}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-400">Plan</dt><dd className="text-white capitalize">{user.plan}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-400">Role</dt><dd className="text-white capitalize">{user.role}</dd></div>
           <div className="flex justify-between"><dt className="text-slate-400">Member since</dt><dd className="text-white">{fmt(user.createdAt)}</dd></div>
@@ -91,14 +91,14 @@ export default function Profile() {
         <p className="mt-1 text-sm text-slate-400">
           2x costs 1 credit, 4x costs 2 credits. Failed or cancelled jobs refund automatically.
         </p>
-        <Link to="/payment" className="mt-3 inline-block rounded-full bg-[#2563eb] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
+        <Link to="/payment" className="mt-3 inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
           Add credits via bKash / Nagad
         </Link>
         {creditInfo && creditInfo.ledger.length > 0 && (
           <ul className="mt-4 space-y-1 text-sm">
             {creditInfo.ledger.map((x, i) => (
-              <li key={i} className="flex justify-between gap-4 border-t border-white/5 py-1.5">
-                <span className="text-slate-300">
+              <li key={i} className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 border-t border-white/5 py-1.5">
+                <span className="min-w-0 break-words text-slate-300">
                   {x.reason === 'signup' ? 'Signup grant' : x.reason === 'job' ? `Job ${x.jobId?.slice(0, 8)}` : x.reason === 'refund' ? `Refund for job ${x.jobId?.slice(0, 8)}` : 'Admin adjustment'}
                 </span>
                 <span className={x.delta >= 0 ? 'text-emerald-300' : 'text-red-300'}>
@@ -118,12 +118,12 @@ export default function Profile() {
         <form onSubmit={doChangePassword} className="mt-3 space-y-3">
           <input type="password" required value={currentPw} onChange={(e) => setCurrentPw(e.target.value)}
             placeholder="Current password" autoComplete="current-password"
-            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]" />
+            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]" />
           <input type="password" required minLength={8} value={newPw} onChange={(e) => setNewPw(e.target.value)}
             placeholder="New password (at least 8 characters)" autoComplete="new-password"
-            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]" />
+            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]" />
           <button type="submit" disabled={pwBusy}
-            className="rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
+            className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
             {pwBusy ? 'Changing…' : 'Change password'}
           </button>
         </form>
@@ -138,21 +138,21 @@ export default function Profile() {
         </p>
         {!delArmed ? (
           <button type="button" onClick={() => setDelArmed(true)}
-            className="mt-3 rounded-full border border-red-500/50 px-5 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-500/10">
+            className="mt-3 inline-flex min-h-11 items-center rounded-full border border-red-500/50 px-5 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-500/10">
             Delete my account…
           </button>
         ) : (
           <div className="mt-3 space-y-3">
             <input type="password" value={delPw} onChange={(e) => setDelPw(e.target.value)}
               placeholder="Enter your password to confirm" autoComplete="current-password"
-              className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-red-500" />
+              className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-red-500" />
             <div className="flex gap-2">
               <button type="button" onClick={doDelete} disabled={delBusy || !delPw}
-                className="rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50">
+                className="inline-flex min-h-11 items-center rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50">
                 {delBusy ? 'Deleting…' : 'Yes, delete everything'}
               </button>
               <button type="button" onClick={() => { setDelArmed(false); setDelPw(''); }}
-                className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-slate-300 hover:bg-white/10">
+                className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 py-2.5 text-sm text-slate-300 hover:bg-white/10">
                 Cancel
               </button>
             </div>

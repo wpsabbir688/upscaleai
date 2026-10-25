@@ -50,18 +50,18 @@ export default function JobCard({ job, selected, onSelect, onCancel }) {
         {job.status === 'done' && (
           <>
             <button type="button" onClick={() => onSelect(job)}
-              className="rounded-full bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1d4ed8]">
+              className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1d4ed8]">
               Compare
             </button>
             <a href={downloadUrl(job.id)}
-              className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">
+              className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">
               <Download size={13} /> Download
             </a>
           </>
         )}
         {busy && (
           <button type="button" onClick={() => onCancel(job.id)}
-            className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">
+            className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">
             <X size={13} /> Cancel
           </button>
         )}

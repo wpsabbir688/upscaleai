@@ -38,17 +38,17 @@ export default function Login() {
         <label className="block">
           <span className="text-sm text-slate-300">Email</span>
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]"
+            className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]"
             placeholder="you@example.com" autoComplete="email" />
         </label>
         <label className="block">
           <span className="text-sm text-slate-300">Password</span>
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]"
+            className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]"
             placeholder="Your password" autoComplete="current-password" />
         </label>
         <button type="submit" disabled={busy}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
           <LogIn size={16} /> {busy ? 'Logging in…' : 'Log in'}
         </button>
         <p className="text-center text-sm text-slate-400">

@@ -36,7 +36,7 @@ export default function Payment() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <p className="text-slate-400">Log in to add credits with bKash or Nagad.</p>
-        <Link to="/login" className="mt-4 inline-block rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white">Log in</Link>
+        <Link to="/login" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white">Log in</Link>
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function Payment() {
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <span id="pay-number" className="font-display text-2xl font-extrabold tracking-wide text-white">{number}</span>
           <button type="button" onClick={doCopy}
-            className="inline-flex items-center gap-1 rounded-full border border-white/20 px-4 py-1.5 text-sm text-white hover:bg-white/10">
+            className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/20 px-4 py-1.5 text-sm text-white hover:bg-white/10">
             {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy number</>}
           </button>
         </div>
@@ -127,7 +127,7 @@ export default function Payment() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm text-slate-400">Payment method
               <select value={method} onChange={(e) => setMethod(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]">
+                className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]">
                 <option value="bkash">bKash</option>
                 <option value="nagad">Nagad</option>
               </select>
@@ -135,25 +135,25 @@ export default function Payment() {
             <label className="block text-sm text-slate-400">Amount (BDT)
               <input type="number" required min={1} max={maxBdt} step={1} value={amount}
                 onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 100"
-                className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]" />
+                className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]" />
             </label>
           </div>
           <label className="block text-sm text-slate-400">Transaction ID (from your bKash/Nagad confirmation)
             <input type="text" required maxLength={64} value={txnId} onChange={(e) => setTxnId(e.target.value)}
               placeholder="e.g. 9HX7K2M1P4"
-              className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]" />
+              className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]" />
           </label>
           <label className="block text-sm text-slate-400">Sender mobile (the number you sent from)
             <input type="text" required inputMode="numeric" value={sender} onChange={(e) => setSender(e.target.value)}
               placeholder="e.g. 01XXXXXXXXX"
-              className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-[#2563eb]" />
+              className="mt-1 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 min-h-11 text-white outline-none focus:border-[#2563eb]" />
           </label>
           <p className="text-sm text-slate-400">
             You will receive <b className="text-white">{amount && Number.isInteger(Number(amount)) && Number(amount) > 0 ? Number(amount) * rate : '—'} credits</b> once
             an admin approves this claim. Never share your bKash/Nagad password or PIN with anyone — we never ask for it.
           </p>
           <button type="submit" disabled={busy}
-            className="rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
+            className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50">
             {busy ? 'Submitting…' : 'Submit claim'}
           </button>
         </form>

@@ -43,7 +43,7 @@ export default function Admin() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <p className="text-slate-400">Log in as an admin to see this dashboard.</p>
-        <Link to="/login" className="mt-4 inline-block rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white">Log in</Link>
+        <Link to="/login" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white">Log in</Link>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function Admin() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <p className="text-slate-400">Admin access required. This page is only for administrators.</p>
-        <Link to="/studio" className="mt-4 inline-block rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white">Back to studio</Link>
+        <Link to="/studio" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white">Back to studio</Link>
       </div>
     );
   }
@@ -148,7 +148,7 @@ export default function Admin() {
                   <td className="py-2 pr-4 text-slate-300">{u.status}</td>
                   <td className="py-2 pr-4">
                     <select value={u.plan} onChange={(e) => act(() => adminSetPlan(u.id, e.target.value), `Plan set to ${e.target.value}.`)}
-                      className="rounded-lg border border-white/15 bg-black/30 px-2 py-1 text-white">
+                      className="rounded-lg border border-white/15 bg-black/30 px-2 py-1 min-h-11 text-white">
                       {['free', 'pro', 'premium'].map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </td>
@@ -156,17 +156,17 @@ export default function Admin() {
                   <td className="py-2">
                     <div className="flex flex-wrap items-center gap-2">
                       {u.status === 'active'
-                        ? <button type="button" onClick={() => act(() => adminSuspend(u.id), 'User suspended.')} className="rounded-full border border-white/15 px-3 py-1 text-xs text-slate-200 hover:bg-white/10">Suspend</button>
-                        : <button type="button" onClick={() => act(() => adminUnsuspend(u.id), 'User unsuspended.')} className="rounded-full border border-white/15 px-3 py-1 text-xs text-slate-200 hover:bg-white/10">Unsuspend</button>}
+                        ? <button type="button" onClick={() => act(() => adminSuspend(u.id), 'User suspended.')} className="rounded-full border border-white/15 px-3 py-1 min-h-11 text-xs text-slate-200 hover:bg-white/10">Suspend</button>
+                        : <button type="button" onClick={() => act(() => adminUnsuspend(u.id), 'User unsuspended.')} className="rounded-full border border-white/15 px-3 py-1 min-h-11 text-xs text-slate-200 hover:bg-white/10">Unsuspend</button>}
                       <input type="number" placeholder="±credits" aria-label={`Credit adjustment for ${u.email}`}
                         value={adjust[u.id]?.delta ?? ''}
                         onChange={(e) => setAdjust((a) => ({ ...a, [u.id]: { ...a[u.id], delta: e.target.value } }))}
-                        className="w-24 rounded-lg border border-white/15 bg-black/30 px-2 py-1 text-white" />
+                        className="w-24 rounded-lg border border-white/15 bg-black/30 px-2 py-1 min-h-11 text-white" />
                       <input type="text" placeholder="Reason" aria-label={`Reason for ${u.email}`}
                         value={adjust[u.id]?.reason ?? ''}
                         onChange={(e) => setAdjust((a) => ({ ...a, [u.id]: { ...a[u.id], reason: e.target.value } }))}
-                        className="w-32 rounded-lg border border-white/15 bg-black/30 px-2 py-1 text-white" />
-                      <button type="button" onClick={() => doAdjust(u.id)} className="rounded-full bg-[#2563eb] px-3 py-1 text-xs font-semibold text-white hover:bg-[#1d4ed8]">Apply</button>
+                        className="w-32 rounded-lg border border-white/15 bg-black/30 px-2 py-1 min-h-11 text-white" />
+                      <button type="button" onClick={() => doAdjust(u.id)} className="rounded-full bg-[#2563eb] px-3 py-1 min-h-11 text-xs font-semibold text-white hover:bg-[#1d4ed8]">Apply</button>
                     </div>
                   </td>
                 </tr>
@@ -202,12 +202,12 @@ export default function Admin() {
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button type="button"
                       onClick={() => act(() => adminApprovePayment(c.id), `Approved: +${c.credits} credits to ${c.userEmail || 'user'}.`)}
-                      className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">
+                      className="rounded-full bg-emerald-600 px-4 py-1.5 min-h-11 text-xs font-semibold text-white hover:bg-emerald-500">
                       Approve +{c.credits} credits
                     </button>
                     {rejecting[c.id] === undefined ? (
                       <button type="button" onClick={() => setRejecting((r) => ({ ...r, [c.id]: '' }))}
-                        className="rounded-full border border-red-500/50 px-4 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/10">
+                        className="rounded-full border border-red-500/50 px-4 py-1.5 min-h-11 text-xs font-semibold text-red-200 hover:bg-red-500/10">
                         Reject…
                       </button>
                     ) : (
@@ -215,18 +215,18 @@ export default function Admin() {
                         <input type="text" placeholder="Rejection reason (required)" aria-label={`Rejection reason for ${c.txnId}`}
                           value={rejecting[c.id]}
                           onChange={(e) => setRejecting((r) => ({ ...r, [c.id]: e.target.value }))}
-                          className="w-64 rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-white" />
+                          className="w-64 rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 min-h-11 text-white" />
                         <button type="button"
                           onClick={() => {
                             if (!rejecting[c.id].trim()) { setNotice({ kind: 'error', text: 'A rejection reason is required.' }); return; }
                             act(() => adminRejectPayment(c.id, rejecting[c.id].trim()), 'Claim rejected.');
                             setRejecting((r) => { const n = { ...r }; delete n[c.id]; return n; });
                           }}
-                          className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500">
+                          className="rounded-full bg-red-600 px-4 py-1.5 min-h-11 text-xs font-semibold text-white hover:bg-red-500">
                           Confirm reject
                         </button>
                         <button type="button" onClick={() => setRejecting((r) => { const n = { ...r }; delete n[c.id]; return n; })}
-                          className="rounded-full border border-white/15 px-4 py-1.5 text-xs text-slate-300 hover:bg-white/10">
+                          className="rounded-full border border-white/15 px-4 py-1.5 min-h-11 text-xs text-slate-300 hover:bg-white/10">
                           Cancel
                         </button>
                       </>

@@ -1,5 +1,6 @@
 import { Link, Route, Routes, useNavigate } from 'react-router-dom';
-import { Coins, Zap } from 'lucide-react';
+import { Coins, Zap, Menu, X } from 'lucide-react';
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext.jsx';
 import Home from './pages/Home.jsx';
 import Studio from './pages/Studio.jsx';
@@ -12,32 +13,37 @@ import Payment from './pages/Payment.jsx';
 function Nav() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const doLogout = async () => {
     await logout();
+    setOpen(false);
     navigate('/');
   };
+  // Mobile link: full-width rows, 44px+ tall, menu closes on navigation.
+  const mlink = 'flex min-h-11 items-center rounded-xl px-3 text-slate-200 hover:bg-white/10 hover:text-white';
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1020]/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2563eb] text-white">
+        <Link to="/" className="flex min-w-0 items-center gap-2" onClick={() => setOpen(false)}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#2563eb] text-white">
             <Zap size={20} />
           </span>
-          <span className="font-display text-lg font-extrabold text-white">UpscaleAI</span>
-          <span className="hidden text-xs text-slate-500 sm:block">Enhance Beyond Limits</span>
+          <span className="font-display truncate text-lg font-extrabold text-white">UpscaleAI</span>
+          <span className="hidden shrink-0 text-xs text-slate-500 sm:block">Enhance Beyond Limits</span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm sm:gap-3">
+        {/* Desktop nav: unchanged, hidden below md where the hamburger takes over. */}
+        <nav className="hidden items-center gap-1 text-sm sm:gap-3 md:flex">
           <Link to="/studio" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">AI Upscaler</Link>
-          <a href="/#features" className="hidden rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white sm:block">Features</a>
-          <a href="/#pricing" className="hidden rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white sm:block">Pricing</a>
-          <a href="/#faq" className="hidden rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white sm:block">FAQ</a>
+          <a href="/#features" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Features</a>
+          <a href="/#pricing" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Pricing</a>
+          <a href="/#faq" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">FAQ</a>
           {user ? (
             <>
               <Link to="/payment" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Add credits</Link>
-              <Link to="/profile" className="hidden items-center gap-1 rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white sm:inline-flex">
+              <Link to="/profile" className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
                 <Coins size={14} /> {user.credits} credits
               </Link>
-              <Link to="/profile" className="hidden max-w-[140px] truncate rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white md:block">{user.email}</Link>
+              <Link to="/profile" className="hidden max-w-[140px] truncate rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white lg:block">{user.email}</Link>
               {user.role === 'admin' && (
                 <Link to="/admin" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Admin</Link>
               )}
@@ -50,11 +56,52 @@ function Nav() {
               <Link to="/register" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Register</Link>
             </>
           )}
-          <Link to="/studio" className="rounded-full bg-[#2563eb] px-4 py-2 font-semibold text-white hover:bg-[#1d4ed8]">
+          <Link to="/studio" className="inline-flex min-h-11 items-center rounded-full bg-[#2563eb] px-4 py-2 font-semibold text-white hover:bg-[#1d4ed8]">
             Upscale Image
           </Link>
         </nav>
+        {/* Mobile: hamburger only (plus the primary CTA, which fits alone). */}
+        <div className="flex shrink-0 items-center gap-2 md:hidden">
+          <Link to="/studio" onClick={() => setOpen(false)}
+            className="hidden min-h-11 items-center rounded-full bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] min-[380px]:inline-flex">
+            Upscale Image
+          </Link>
+          <button type="button" data-testid="mobile-menu-button" aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open} onClick={() => setOpen((o) => !o)}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 text-white hover:bg-white/10">
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
+      {open && (
+        <nav data-testid="mobile-menu" className="border-t border-white/10 px-4 py-2 text-sm md:hidden">
+          {user && (
+            <p data-testid="mobile-menu-credits" className="flex min-h-11 items-center gap-1.5 px-3 font-semibold text-white">
+              <Coins size={15} className="text-[#42d9f5]" /> {user.credits} credits
+              <span className="ml-1 max-w-[180px] truncate font-normal text-slate-400">{user.email}</span>
+            </p>
+          )}
+          <Link to="/studio" className={mlink} onClick={() => setOpen(false)}>AI Upscaler</Link>
+          <a href="/#features" className={mlink} onClick={() => setOpen(false)}>Features</a>
+          <a href="/#pricing" className={mlink} onClick={() => setOpen(false)}>Pricing</a>
+          <a href="/#faq" className={mlink} onClick={() => setOpen(false)}>FAQ</a>
+          {user ? (
+            <>
+              <Link to="/payment" className={mlink} onClick={() => setOpen(false)}>Add credits</Link>
+              <Link to="/profile" className={mlink} onClick={() => setOpen(false)}>Profile</Link>
+              {user.role === 'admin' && (
+                <Link to="/admin" className={mlink} onClick={() => setOpen(false)}>Admin</Link>
+              )}
+              <button type="button" onClick={doLogout} className={`${mlink} w-full text-left`}>Log out</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className={mlink} onClick={() => setOpen(false)}>Sign in</Link>
+              <Link to="/register" className={mlink} onClick={() => setOpen(false)}>Register</Link>
+            </>
+          )}
+        </nav>
+      )}
     </header>
   );
 }
@@ -89,7 +136,7 @@ function Footer() {
 export default function App() {
   return (
     <AuthProvider>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         <Nav />
         <main className="flex-1">
           <Routes>
