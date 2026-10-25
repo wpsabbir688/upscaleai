@@ -57,6 +57,30 @@ export async function getCredits() {
   return jsonOrThrow(res);
 }
 
+// Manual bKash/Nagad payments (Stage 3): the user sends money outside the
+// app and submits a claim; an admin approves it by hand. No gateway.
+export async function createPaymentClaim(method, amountBdt, txnId, senderMobile) {
+  return postJson('/payments', { method, amountBdt, txnId, senderMobile });
+}
+
+export async function listMyPayments() {
+  const res = await fetch(`${BASE}/payments/mine`);
+  return jsonOrThrow(res);
+}
+
+export async function adminPayments() {
+  const res = await fetch(`${BASE}/admin/payments`);
+  return jsonOrThrow(res);
+}
+
+export async function adminApprovePayment(id) {
+  return postJson(`/admin/payments/${id}/approve`, {});
+}
+
+export async function adminRejectPayment(id, reason) {
+  return postJson(`/admin/payments/${id}/reject`, { reason });
+}
+
 // Admin (server enforces role; the UI only hides these links).
 export async function adminOverview() {
   const res = await fetch(`${BASE}/admin/overview`);

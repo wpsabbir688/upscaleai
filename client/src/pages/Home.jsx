@@ -54,7 +54,7 @@ const FAQS = [
   },
   {
     q: 'Do I need an account or payment?',
-    a: 'An account is required for the studio, so your jobs, files, and credits stay private. No payment is needed: every new account starts with 10 free credits (2x costs 1, 4x costs 2). Paid plans are coming soon and will only arrive with a verified payment gateway.',
+    a: 'An account is required for the studio, so your jobs, files, and credits stay private. Every new account starts with 10 free credits (2x costs 1, 4x costs 2). When you need more, add credits manually with bKash or Nagad: send money to the number on the Add credits page, submit the transaction ID, and an admin approves it by hand (1 BDT = 1 credit). Automated gateway checkout is still to come.',
   },
   {
     q: 'Which formats and sizes are supported?',
@@ -182,7 +182,8 @@ export default function Home() {
         <p className="mt-2 max-w-2xl text-slate-400">
           Free is the live plan today: every new account starts with 10 credits (2x costs 1,
           4x costs 2, failed or cancelled jobs refund). Pro and Premium are coming soon —
-          no payment is taken and there is no checkout until a payment gateway is verified.
+          extra credits today come from manual bKash/Nagad payments, verified by an admin by hand;
+          automated gateway checkout is still to come.
         </p>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {[
@@ -204,7 +205,7 @@ export default function Home() {
                 ))}
                 {name !== 'Free' && (
                   <li className="flex items-start gap-2 text-sm text-slate-500">
-                    <X size={16} className="mt-0.5 shrink-0" /> No checkout yet — paid tiers need a verified payment gateway first
+                    <X size={16} className="mt-0.5 shrink-0" /> No automated checkout yet — add credits manually with bKash/Nagad
                   </li>
                 )}
               </ul>

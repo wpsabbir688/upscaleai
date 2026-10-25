@@ -91,6 +91,9 @@ export default function Profile() {
         <p className="mt-1 text-sm text-slate-400">
           2x costs 1 credit, 4x costs 2 credits. Failed or cancelled jobs refund automatically.
         </p>
+        <Link to="/payment" className="mt-3 inline-block rounded-full bg-[#2563eb] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8]">
+          Add credits via bKash / Nagad
+        </Link>
         {creditInfo && creditInfo.ledger.length > 0 && (
           <ul className="mt-4 space-y-1 text-sm">
             {creditInfo.ledger.map((x, i) => (

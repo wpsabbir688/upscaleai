@@ -6,7 +6,7 @@ import multer from 'multer';
 import argon2 from 'argon2';
 import { ZipArchive } from 'archiver';
 import { config } from './config.js';
-import { publicJob, publicUser, writeAudit } from './db.js';
+import { publicClaim, publicJob, publicUser, writeAudit } from './db.js';
 import {
   registerUser, loginUser, logoutSession, requireAuth, requireAdmin,
   changePassword, setSessionCookie, clearSessionCookie,
@@ -97,10 +97,73 @@ export function makeRouter(db, queue) {
   r.get('/credits', auth, (req, res) => {
     const user = db.prepare('SELECT credits, plan FROM users WHERE id = ?').get(req.user.id);
     const ledger = db.prepare(
-      'SELECT delta, reason, job_id, created_at FROM credit_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 100')
+      'SELECT delta, reason, job_id, detail, created_at FROM credit_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 100')
       .all(req.user.id)
-      .map((x) => ({ delta: x.delta, reason: x.reason, jobId: x.job_id, createdAt: x.created_at }));
+      .map((x) => ({
+        delta: x.delta, reason: x.reason, jobId: x.job_id,
+        detail: x.detail ? JSON.parse(x.detail) : null,
+        createdAt: x.created_at,
+      }));
     res.json({ balance: user ? user.credits : 0, plan: user ? user.plan : 'free', ledger });
+  });
+
+  // ------------------------------------------- manual payments (Stage 3)
+  // Flow: user Send-Moneys to the owner's bKash/Nagad number OUTSIDE the
+  // app, then submits a claim here. The claim stays 'pending' until a
+  // human admin checks their own bKash/Nagad account and approves or
+  // rejects it. Nothing here verifies a payment automatically, and no
+  // payment password or PIN is ever collected or stored.
+  function validateClaim(body) {
+    const method = body?.method;
+    if (method !== 'bkash' && method !== 'nagad') {
+      return 'Payment method must be bKash or Nagad.';
+    }
+    const amount = body?.amountBdt;
+    if (!Number.isInteger(amount) || amount <= 0 || amount > config.maxClaimBdt) {
+      return `Amount must be a whole number between 1 and ${config.maxClaimBdt} BDT.`;
+    }
+    const txnId = typeof body?.txnId === 'string' ? body.txnId.trim() : '';
+    if (!txnId || txnId.length > 64) {
+      return 'Transaction ID is required (max 64 characters).';
+    }
+    const sender = typeof body?.senderMobile === 'string' ? body.senderMobile.trim() : '';
+    if (!/^[0-9]{10,15}$/.test(sender)) {
+      return 'Sender mobile must be 10-15 digits (digits only, as in your bKash/Nagad account).';
+    }
+    return null;
+  }
+
+  r.post('/payments', auth, (req, res) => {
+    const error = validateClaim(req.body);
+    if (error) return res.status(400).json({ error });
+    const txnId = req.body.txnId.trim();
+    const sender = req.body.senderMobile.trim();
+    const existing = db.prepare('SELECT id FROM payment_claims WHERE txn_id = ?').get(txnId);
+    if (existing) {
+      return res.status(409).json({ error: 'This transaction ID has already been claimed.' });
+    }
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    try {
+      db.prepare(`INSERT INTO payment_claims
+        (id, user_id, method, amount_bdt, txn_id, sender_mobile, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`)
+        .run(id, req.user.id, req.body.method, req.body.amountBdt, txnId, sender, now);
+    } catch (e) {
+      if (String(e.message || '').includes('UNIQUE constraint')) {
+        return res.status(409).json({ error: 'This transaction ID has already been claimed.' });
+      }
+      throw e;
+    }
+    const row = db.prepare('SELECT * FROM payment_claims WHERE id = ?').get(id);
+    res.status(201).json(publicClaim(row));
+  });
+
+  r.get('/payments/mine', auth, (req, res) => {
+    const rows = db.prepare(
+      'SELECT * FROM payment_claims WHERE user_id = ? ORDER BY created_at DESC LIMIT 100')
+      .all(req.user.id);
+    res.json(rows.map(publicClaim));
   });
 
   // ------------------------------------------------------- job ownership
@@ -419,8 +482,9 @@ export function makeRouter(db, queue) {
     return { detail: { status: 'active' } };
   }));
 
-  // Plan assignment is a stored label in Stage 2: plans carry no billing or
-  // limits until verified payments exist (blocked item, see README).
+  // Plan assignment is a stored label: plans carry no billing or limits.
+  // Credits come from manual bKash/Nagad payments (Stage 3); automated
+  // gateway payments remain a blocked item (see README).
   r.post('/admin/users/:id/plan', admin, adminUserAction('plan_change', (target, req) => {
     const plan = req.body?.plan;
     if (!['free', 'pro', 'premium'].includes(plan)) {
@@ -458,6 +522,71 @@ export function makeRouter(db, queue) {
     writeAudit(db, req.user.id, 'credit_adjust', target.id, { delta, reason });
     const fresh = db.prepare('SELECT * FROM users WHERE id = ?').get(target.id);
     res.json(publicUser(fresh));
+  });
+
+  // Admin payment review: the admin verifies the money in their own
+  // bKash/Nagad account (outside the app) and then decides. Approval is
+  // ONE transaction — claim pending→approved + credits + ledger + audit —
+  // so a decided claim can never be approved twice for a second credit.
+  r.get('/admin/payments', admin, (req, res) => {
+    const rows = db.prepare(
+      `SELECT p.*, u.email AS user_email FROM payment_claims p
+       LEFT JOIN users u ON u.id = p.user_id
+       ORDER BY p.created_at DESC LIMIT 200`).all();
+    res.json(rows.map(publicClaim));
+  });
+
+  r.post('/admin/payments/:id/approve', admin, (req, res) => {
+    const claim = db.prepare('SELECT * FROM payment_claims WHERE id = ?').get(req.params.id);
+    if (!claim) return res.status(404).json({ error: 'Payment claim not found.' });
+    if (claim.status !== 'pending') {
+      return res.status(409).json({ error: `This claim is already ${claim.status}; it cannot be approved again.` });
+    }
+    const credits = claim.amount_bdt * config.creditPerBdt;
+    const now = Date.now();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.prepare(`UPDATE payment_claims
+        SET status = 'approved', admin_id = ?, decided_at = ? WHERE id = ? AND status = 'pending'`)
+        .run(req.user.id, now, claim.id);
+      const changed = db.prepare('SELECT changes() c').get().c;
+      if (changed !== 1) throw Object.assign(new Error('Claim was already decided.'), { status: 409 });
+      db.prepare('UPDATE users SET credits = credits + ?, updated_at = ? WHERE id = ?')
+        .run(credits, now, claim.user_id);
+      db.prepare(`INSERT INTO credit_ledger
+        (id, user_id, delta, reason, job_id, detail, created_at) VALUES (?, ?, ?, 'payment', NULL, ?, ?)`)
+        .run(crypto.randomUUID(), claim.user_id, credits,
+          JSON.stringify({ claimId: claim.id, txnId: claim.txn_id, method: claim.method }), now);
+      db.exec('COMMIT');
+    } catch (e) {
+      db.exec('ROLLBACK');
+      if (e && e.status) return res.status(e.status).json({ error: e.message });
+      throw e;
+    }
+    writeAudit(db, req.user.id, 'payment_approve', claim.user_id,
+      { claimId: claim.id, txnId: claim.txn_id, method: claim.method, amountBdt: claim.amount_bdt, credits });
+    const fresh = db.prepare('SELECT * FROM payment_claims WHERE id = ?').get(claim.id);
+    res.json(publicClaim(fresh));
+  });
+
+  r.post('/admin/payments/:id/reject', admin, (req, res) => {
+    const claim = db.prepare('SELECT * FROM payment_claims WHERE id = ?').get(req.params.id);
+    if (!claim) return res.status(404).json({ error: 'Payment claim not found.' });
+    if (claim.status !== 'pending') {
+      return res.status(409).json({ error: `This claim is already ${claim.status}; it cannot be rejected again.` });
+    }
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    if (!reason) return res.status(400).json({ error: 'A rejection reason is required.' });
+    if (reason.length > 500) return res.status(400).json({ error: 'Reason must be at most 500 characters.' });
+    const now = Date.now();
+    db.prepare(`UPDATE payment_claims
+      SET status = 'rejected', reject_reason = ?, admin_id = ?, decided_at = ?
+      WHERE id = ? AND status = 'pending'`)
+      .run(reason, req.user.id, now, claim.id);
+    writeAudit(db, req.user.id, 'payment_reject', claim.user_id,
+      { claimId: claim.id, txnId: claim.txn_id, method: claim.method, reason });
+    const fresh = db.prepare('SELECT * FROM payment_claims WHERE id = ?').get(claim.id);
+    res.json(publicClaim(fresh));
   });
 
   r.get('/admin/jobs', admin, (req, res) => {
@@ -498,6 +627,15 @@ export function makeRouter(db, queue) {
       queueConcurrency: 1,
       creditCost: config.creditCost,
       freeCredits: config.freeCredits,
+      manualPayments: {
+        number: config.paymentNumber,
+        methods: ['bkash', 'nagad'],
+        creditPerBdt: config.creditPerBdt,
+        maxClaimBdt: config.maxClaimBdt,
+        // No gateway: the admin verifies each payment by hand in their own
+        // bKash/Nagad account before approving a claim.
+        automatedVerification: false,
+      },
       authRequired: true,
     });
   });

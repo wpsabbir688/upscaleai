@@ -5,6 +5,7 @@ import { useAuth } from '../lib/AuthContext.jsx';
 import {
   adminOverview, adminUsers, adminJobs, adminHealth, adminAudit,
   adminSuspend, adminUnsuspend, adminSetPlan, adminAdjustCredits,
+  adminPayments, adminApprovePayment, adminRejectPayment,
 } from '../lib/api.js';
 
 function fmt(ts) {
@@ -18,16 +19,18 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [audit, setAudit] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [adjust, setAdjust] = useState({}); // userId -> { delta, reason }
+  const [rejecting, setRejecting] = useState({}); // claimId -> reason text
 
   const refresh = useCallback(async () => {
     try {
-      const [o, h, u, j, a] = await Promise.all([
-        adminOverview(), adminHealth(), adminUsers(), adminJobs(), adminAudit(),
+      const [o, h, u, j, a, p] = await Promise.all([
+        adminOverview(), adminHealth(), adminUsers(), adminJobs(), adminAudit(), adminPayments(),
       ]);
-      setOverview(o); setHealth(h); setUsers(u); setJobs(j); setAudit(a);
+      setOverview(o); setHealth(h); setUsers(u); setJobs(j); setAudit(a); setPayments(p);
     } catch (err) {
       setError(err.message);
     }
@@ -80,7 +83,8 @@ export default function Admin() {
         <Shield size={26} /> Admin dashboard
       </h1>
       <p className="mt-1 text-sm text-slate-400">
-        Every sensitive action below is written to the audit log. Plan changes are labels only until verified payments exist.
+        Every sensitive action below is written to the audit log. Plan changes are labels only — credits come from
+        manual bKash/Nagad payments below, verified by hand; there is no automated gateway.
       </p>
 
       {error && (
@@ -170,6 +174,69 @@ export default function Admin() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+        <h2 className="font-display text-lg font-bold text-white">Payment claims (manual bKash / Nagad)</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Before approving, check the amount and transaction ID in your own bKash/Nagad account.
+          Approval adds 1 credit per BDT in a single transaction; a decided claim cannot be approved twice.
+        </p>
+        {payments.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">No payment claims yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {payments.map((c) => (
+              <li key={c.id} className="rounded-2xl border border-white/10 p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold capitalize text-white">
+                    {c.method} · {c.amountBdt} BDT → {c.credits} credits · {c.userEmail || 'deleted user'}
+                  </span>
+                  <span className="rounded-full border border-white/15 px-3 py-0.5 text-xs capitalize text-slate-200">{c.status}</span>
+                </div>
+                <p className="mt-1 text-slate-400">Txn: <span className="text-slate-200">{c.txnId}</span> · From: {c.senderMobile} · {fmt(c.createdAt)}</p>
+                {c.status === 'rejected' && c.rejectReason && (
+                  <p className="mt-1 text-red-200">Reason: {c.rejectReason}</p>
+                )}
+                {c.status === 'pending' && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button type="button"
+                      onClick={() => act(() => adminApprovePayment(c.id), `Approved: +${c.credits} credits to ${c.userEmail || 'user'}.`)}
+                      className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">
+                      Approve +{c.credits} credits
+                    </button>
+                    {rejecting[c.id] === undefined ? (
+                      <button type="button" onClick={() => setRejecting((r) => ({ ...r, [c.id]: '' }))}
+                        className="rounded-full border border-red-500/50 px-4 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/10">
+                        Reject…
+                      </button>
+                    ) : (
+                      <>
+                        <input type="text" placeholder="Rejection reason (required)" aria-label={`Rejection reason for ${c.txnId}`}
+                          value={rejecting[c.id]}
+                          onChange={(e) => setRejecting((r) => ({ ...r, [c.id]: e.target.value }))}
+                          className="w-64 rounded-lg border border-white/15 bg-black/30 px-2 py-1.5 text-white" />
+                        <button type="button"
+                          onClick={() => {
+                            if (!rejecting[c.id].trim()) { setNotice({ kind: 'error', text: 'A rejection reason is required.' }); return; }
+                            act(() => adminRejectPayment(c.id, rejecting[c.id].trim()), 'Claim rejected.');
+                            setRejecting((r) => { const n = { ...r }; delete n[c.id]; return n; });
+                          }}
+                          className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500">
+                          Confirm reject
+                        </button>
+                        <button type="button" onClick={() => setRejecting((r) => { const n = { ...r }; delete n[c.id]; return n; })}
+                          className="rounded-full border border-white/15 px-4 py-1.5 text-xs text-slate-300 hover:bg-white/10">
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">

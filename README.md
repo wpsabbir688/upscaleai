@@ -12,10 +12,14 @@ with a Before/After slider and downloaded as high-resolution PNGs.
 - Stage 2 is live: **accounts, server-side credits, and an admin dashboard
   exist**. The studio requires login; every job belongs to exactly one
   user and other users get 403, never data.
-- **No payments are taken.** Pro/Premium are shown as coming soon and
-  there is no checkout: verified payments are blocked on gateway merchant
-  eligibility + credentials, which do not exist yet. Nothing here simulates
-  a transaction.
+- **Manual payments only (Stage 3).** There is no gateway and no automated
+  verification: users Send Money to the owner's bKash/Nagad number
+  **01944460344** outside the app, submit a claim (method, amount, txn ID,
+  sender mobile), and an admin approves it by hand after checking their own
+  bKash/Nagad account — approval adds 1 credit per BDT. Nothing here
+  simulates a transaction, and no bKash/Nagad password or PIN is ever
+  collected or stored. Automated gateway checkout remains blocked on
+  merchant eligibility + credentials, which do not exist yet.
 - No customer counts, reviews, testimonials, or accuracy claims are made
   anywhere in the product — there are none to show.
 - Processing progress is **indeterminate by design**: the UI never shows a
@@ -57,6 +61,39 @@ every account by design, not silently re-attributed.
   limits until verified payments exist.
 - **Unchanged from v1:** the worker, scales (2x/4x only), caps,
   validation, and serial queue behavior.
+
+## Stage 3 — manual bKash/Nagad payments (built 2026-10-25)
+
+**How it works (exactly as the owner specified):**
+
+1. The user sends money themselves with **Send Money** in their bKash or
+   Nagad app to the owner's number **01944460344** — this happens
+   outside UpscaleAI. The app never touches a gateway and never asks for
+   a bKash/Nagad password or PIN (none is stored anywhere).
+2. The user opens **Add credits** (nav, or Profile → "Add credits via
+   bKash / Nagad") and submits a claim: method (bKash/Nagad), amount in
+   BDT (whole number, 1–100000), transaction ID, and the sender mobile
+   number. The page shows the 01944460344 number with a copy button and
+   the rate **1 BDT = 1 credit**. A transaction ID can be claimed only
+   once (globally unique; duplicates get a clear 409 error).
+3. The claim sits **Pending** until a human admin opens the **Payments**
+   section of the Admin dashboard, checks the amount and transaction ID
+   in their own bKash/Nagad account, and clicks **Approve** or **Reject**.
+4. On approve, credits are added **in the same SQLite transaction** as
+   the claim decision (claim pending→approved, user credits += amount,
+   `payment` ledger entry with txn ID + method, audit entry). A decided
+   claim can never be approved twice — re-approval is rejected and adds
+   no second credit. On reject, the admin must give a reason, which the
+   user sees on their claims list; no credits are added.
+5. The existing manual credit-adjustment feature stays as-is for
+   corrections (it writes `admin_adjust` ledger entries, separate from
+   `payment` entries).
+
+**Admin verification steps (the human part, by design):** open your bKash
+or Nagad app → find the transaction by ID → confirm the amount and the
+sender number match the claim → only then click Approve. If anything
+does not match, Reject with the reason (e.g. "No matching payment
+found"). There is no automatic confirmation anywhere in this flow.
 
 ### Seeding an admin
 
@@ -169,6 +206,11 @@ job access returns 403.
 | POST | `/api/auth/change-password` | `{ currentPassword, newPassword }`; other sessions invalidated |
 | DELETE | `/api/auth/account` | `{ password }` → wipes user, jobs, files, credits, sessions |
 | GET | `/api/credits` | Balance, plan, full ledger (newest first) |
+| POST | `/api/payments` | Manual payment claim `{ method: bkash\|nagad, amountBdt, txnId, senderMobile }` → 201 pending; duplicate txn ID → 409 |
+| GET | `/api/payments/mine` | Own claims with status + reject reason, newest first |
+| GET | `/api/admin/payments` | Admin: all claims with user email, newest first |
+| POST | `/api/admin/payments/:id/approve` | Admin: one transaction — approve + add amount×1 credits + `payment` ledger + audit; re-approve → 409 |
+| POST | `/api/admin/payments/:id/reject` | Admin: `{ reason }` required; stores reason + audit, adds no credits |
 | POST | `/api/jobs` | Multipart `image` + `scale` (2/4); validates signature, MIME, dims, size; accepts `Idempotency-Key` |
 | POST | `/api/batch` | Multipart `images` (≤10) + `scale`; one job per file; accepts `Idempotency-Key` |
 | GET | `/api/jobs` | Own job list, newest first |
@@ -212,9 +254,17 @@ refund, 402 on insufficient credits + success after an admin grant,
 audit-log entries on credit adjustment, change-password end to end,
 account deletion wiping jobs/sessions/user row, and self-suspension
 refusal. The worker suite checks output dimensions, PNG integrity, and
-corrupt-input failure. **24/24 green at Stage 2**, plus a 12/12 local
-Playwright browser verification (register → real 4x → history, logout
-gate, second-user isolation + 403, admin dashboard with real stats).
+corrupt-input failure. The payments suite covers: claim validation (bad
+method, zero/negative/over-cap/non-integer amount, missing/over-long txn
+ID, bad sender mobile), duplicate txn rejection (same and different
+user), own-list isolation, non-admin 403 on list/approve/reject, approve
+adding exact credits + `payment` ledger detail + audit entry,
+double-approve rejection with no second credit, reject storing the
+reason with no credits and requiring a reason, and 404 on unknown claims.
+**31/31 green at Stage 3** (24 Stage 2 + 7 payments), plus a 13/13 local
+Playwright browser verification (register → payment page shows number +
+rate → claim pending → duplicate blocked → admin approve → balance
+10→110 → reject path shows reason, balance unchanged).
 
 ## Limits (Stage 2)
 
@@ -229,12 +279,15 @@ gate, second-user isolation + 403, admin dashboard with real stats).
   free-tier hosts (typically 512 MB RAM). Live deploy needs a real
   server with several GB of RAM (GPU host preferred).
 
-## Still NOT built (after Stage 2)
+## Still NOT built (after Stage 3)
 
-- **Verified payments — BLOCKED.** No gateway merchant account and no
-  credentials exist, so there is no checkout, no payment page, and no
-  simulated transaction anywhere. Plans are labels until a gateway is
-  verified (webhook-verified, never frontend callbacks).
+- **Automated gateway payments — BLOCKED.** Manual bKash/Nagad payments
+  are live (Stage 3), but there is no gateway merchant account and no
+  credentials, so there is no automated checkout and no simulated
+  transaction anywhere. Plans are labels until a gateway is verified
+  (webhook-verified, never frontend callbacks). Every manual payment
+  must be verified by a human admin in their own bKash/Nagad account;
+  no automatic confirmation exists.
 - Developer API (keys + usage billing).
 - Face restoration / denoise models (only with a real bundled model).
 - Staged upscaling for 6x–20x (only after benchmarking).

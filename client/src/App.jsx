@@ -7,6 +7,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Profile from './pages/Profile.jsx';
 import Admin from './pages/Admin.jsx';
+import Payment from './pages/Payment.jsx';
 
 function Nav() {
   const { user, logout } = useAuth();
@@ -32,6 +33,7 @@ function Nav() {
           <a href="/#faq" className="hidden rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white sm:block">FAQ</a>
           {user ? (
             <>
+              <Link to="/payment" className="rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">Add credits</Link>
               <Link to="/profile" className="hidden items-center gap-1 rounded-full px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white sm:inline-flex">
                 <Coins size={14} /> {user.credits} credits
               </Link>
@@ -77,7 +79,7 @@ function Footer() {
           </nav>
         </div>
         <p className="mt-6 text-xs text-slate-600">
-          Stage 2 — accounts, server-side credits, and admin are live. No payments are taken: paid plans are coming soon and need a verified payment gateway first. Uploaded files are deleted automatically after 24 hours.
+          Accounts, server-side credits, and admin are live. Credits can be added with manual bKash/Nagad payments — an admin verifies each payment by hand; there is no automated gateway. Uploaded files are deleted automatically after 24 hours.
         </p>
       </div>
     </footer>
@@ -96,6 +98,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/payment" element={<Payment />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={
               <div className="mx-auto max-w-7xl px-4 py-20 text-center">

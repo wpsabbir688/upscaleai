@@ -56,7 +56,7 @@ export function openDb(dbPath = config.dbPath) {
     CREATE TABLE IF NOT EXISTS audit_log (
       id TEXT PRIMARY KEY,
       actor_id TEXT,          -- NULL for CLI seeding
-      action TEXT NOT NULL,   -- credit_adjust | plan_change | suspend | unsuspend | admin_seeded
+      action TEXT NOT NULL,   -- credit_adjust | plan_change | suspend | unsuspend | admin_seeded | payment_approve | payment_reject
       target_user_id TEXT,
       detail TEXT,
       created_at INTEGER NOT NULL
@@ -69,7 +69,31 @@ export function openDb(dbPath = config.dbPath) {
       created_at INTEGER NOT NULL,
       PRIMARY KEY (user_id, key)
     );
+    -- Manual bKash/Nagad payment claims: the user sends money OUTSIDE the
+    -- app (Send Money to the owner's number) and submits the transaction
+    -- here. A claim is only ever 'pending' until a human admin approves or
+    -- rejects it after checking their own bKash/Nagad account. There is no
+    -- automated verification and no gateway of any kind. txn_id is globally
+    -- unique: one transaction can be claimed only once.
+    CREATE TABLE IF NOT EXISTS payment_claims (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      method TEXT NOT NULL,           -- bkash | nagad
+      amount_bdt INTEGER NOT NULL,
+      txn_id TEXT NOT NULL UNIQUE,
+      sender_mobile TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | rejected
+      reject_reason TEXT,
+      admin_id TEXT,
+      created_at INTEGER NOT NULL,
+      decided_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_claims_user ON payment_claims(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_claims_status ON payment_claims(status, created_at DESC);
   `);
+  // Ledger detail column (payment approvals record txn_id + method here).
+  const ledgerCols = db.prepare('PRAGMA table_info(credit_ledger)').all().map((c) => c.name);
+  if (!ledgerCols.includes('detail')) db.exec('ALTER TABLE credit_ledger ADD COLUMN detail TEXT');
   // v1 -> Stage 2 migration: jobs gain an owner + credit bookkeeping.
   // Rows from v1 have user_id NULL and are therefore inaccessible to every
   // account (ownership check requires an exact match) — the old shared list
@@ -98,6 +122,25 @@ export function publicJob(row) {
     error: row.error || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+// Never expose password_hash or session material. Claims never carry any
+// payment password/PIN — none is ever collected or stored.
+export function publicClaim(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    method: row.method,
+    amountBdt: row.amount_bdt,
+    credits: row.amount_bdt, // 1 BDT = 1 credit (see config.creditPerBdt)
+    txnId: row.txn_id,
+    senderMobile: row.sender_mobile,
+    status: row.status,
+    rejectReason: row.reject_reason || null,
+    decidedAt: row.decided_at || null,
+    createdAt: row.created_at,
+    userEmail: row.user_email || null,
   };
 }
 

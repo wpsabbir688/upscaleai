@@ -31,6 +31,12 @@ export const config = {
   // Stage 2 credits (server-side only; the frontend never decides a balance).
   freeCredits: Number(process.env.FREE_CREDITS || 10),
   creditCost: { 2: 1, 4: 2 },
+  // Manual payments (Stage 3): users Send Money to this number OUTSIDE the
+  // app, then submit a claim. No gateway, no automated verification, and
+  // no bKash/Nagad password or PIN is ever collected or stored.
+  paymentNumber: '01944460344',
+  creditPerBdt: 1, // 1 BDT = 1 credit on admin approval
+  maxClaimBdt: 100000,
   sessionDays: 7,
   // Set COOKIE_SECURE=1 when serving over HTTPS in production. Local dev
   // is plain HTTP, so the cookie must not carry Secure there.
