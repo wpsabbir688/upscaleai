@@ -1,4 +1,8 @@
-const BASE = '/api';
+// Hosted frontend (e.g. Netlify) talks to a separate API host via
+// VITE_API_URL at build time; unset = same-origin '/api' (local dev and
+// the server-served build). Note: a cross-origin split also needs the
+// server's cookie/CORS settings updated (SameSite=None + Secure) — see README.
+const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || '/api';
 
 async function jsonOrThrow(res) {
   const data = await res.json().catch(() => ({}));

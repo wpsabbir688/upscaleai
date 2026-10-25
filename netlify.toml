@@ -1,0 +1,14 @@
+# UpscaleAI frontend on Netlify (static build only).
+# The Express API + Python Real-ESRGAN worker CANNOT run on Netlify
+# (function timeouts + RAM limits); they need a real server host.
+# Set VITE_API_URL in the Netlify dashboard to the API host URL once it
+# exists; without it the built app calls same-origin /api (local dev only).
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
