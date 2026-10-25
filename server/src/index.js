@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { openDb } from './db.js';
 import { JobQueue, sweepExpired } from './queue.js';
 import { makeRouter } from './routes.js';
+import { ensureAdminFromEnv } from './adminSeed.js';
 
 export function createApp(dbPath) {
   const db = openDb(dbPath);
@@ -44,6 +45,15 @@ export function createApp(dbPath) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { app, db } = createApp();
+  // Container deploys (Hugging Face Spaces) have no shell for the seed
+  // script: env-var admin seeding runs here instead. Never fatal — a bad
+  // env value must not take the server down.
+  try {
+    const r = await ensureAdminFromEnv(db);
+    if (r.seeded) console.log(`[upscaleai] startup admin seeding: ${r.reason} ${r.email}`);
+  } catch (e) {
+    console.warn(`[upscaleai] startup admin seeding skipped: ${e.message}`);
+  }
   const removed = sweepExpired(db);
   if (removed) console.log(`[upscaleai] swept ${removed} expired job(s)`);
   setInterval(() => sweepExpired(db), 30 * 60 * 1000);

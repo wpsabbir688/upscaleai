@@ -189,6 +189,18 @@ npm run build      # production build; the API server serves client/dist
 npm run preview    # http://localhost:4173
 ```
 
+## Deployment (free: Hugging Face Spaces, Docker)
+
+The full stack is prepared for HF's free **CPU Basic** tier (16 GB RAM —
+the only free tier that fits the ~1.6 GB torch worker). See
+[`deploy/HF_DEPLOY.md`](deploy/HF_DEPLOY.md) for the exact steps; the
+files are `Dockerfile`, `docker/start.sh`, `.dockerignore`, and
+`deploy/hf-space-README.md` (the Space repo's README). Nothing is
+deployed yet — an HF account + token is still needed to push the Space.
+Admin seeding on Spaces works via `UPSCALE_ADMIN_*` env vars at startup
+(see `server/src/adminSeed.js`: create/promote only, never resets an
+existing admin password).
+
 ## API
 
 All job, batch, credit, and admin endpoints require login (HttpOnly
@@ -275,9 +287,11 @@ rate → claim pending → duplicate blocked → admin approve → balance
 - No rate limiting on auth endpoints yet; no email verification or
   password-reset flow (no SMTP configured) — account recovery today is
   the admin seed script (password reset for a known email).
-- No live-host deployment: a CPU Real-ESRGAN worker cannot run on
-  free-tier hosts (typically 512 MB RAM). Live deploy needs a real
-  server with several GB of RAM (GPU host preferred).
+- No live-host deployment yet: a CPU Real-ESRGAN worker cannot run on
+  free-tier hosts (typically 512 MB RAM) — except HF Spaces CPU Basic
+  (16 GB), for which deployment is prepared (see Deployment above) but
+  not pushed. A production-grade deploy still wants a real server with
+  several GB of RAM (GPU host preferred), plus Postgres.
 
 ## Still NOT built (after Stage 3)
 

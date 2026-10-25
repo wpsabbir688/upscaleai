@@ -1,0 +1,20 @@
+# Keep the build context small and secret-free. Everything excluded here
+# is either rebuilt inside the image (deps, dist, venv, weights) or
+# runtime-only (data, logs).
+node_modules/
+.git/
+.github/
+deploy/
+netlify.toml
+ai/venv/
+ai/weights/
+ai/bench_out/
+ai/__pycache__/
+server/data/
+server/node_modules/
+client/node_modules/
+client/dist/
+*.log
+.DS_Store
+.env
+.env.*
