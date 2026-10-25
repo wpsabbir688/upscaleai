@@ -8,6 +8,7 @@ import {
   createJob, createBatch, listJobs, cancelJob,
   previewUrl, downloadUrl, batchZipUrl, estimateSeconds, formatDuration,
 } from '../lib/api.js';
+import { useAuth } from '../lib/AuthContext.jsx';
 import { takePendingFile } from '../lib/transfer.js';
 
 const DISABLED_SCALES = [6, 8, 10, 15, 20];
@@ -23,6 +24,7 @@ function readImageDims(file) {
 }
 
 export default function Studio() {
+  const { user, loading: authLoading, refresh: authRefresh } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [selected, setSelected] = useState(null);
   const [scale, setScale] = useState(4);
@@ -35,6 +37,8 @@ export default function Studio() {
   const refresh = useCallback(async () => {
     try {
       const list = await listJobs();
+      // Keep the nav credit balance truthful (creation, refund on failure).
+      authRefresh();
       setJobs(list);
       setSelected((prev) => {
         if (!prev) return list.find((j) => j.status === 'done') || null;
@@ -42,9 +46,9 @@ export default function Studio() {
         return fresh || prev;
       });
     } catch { /* server down: keep last state, banner below handles it */ }
-  }, []);
+  }, [authRefresh]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (user) refresh(); }, [refresh, user]);
 
   // Poll while anything is queued/processing.
   useEffect(() => {
@@ -143,6 +147,22 @@ export default function Studio() {
   }, [staged]);
   useEffect(() => () => { if (stagedUrl) URL.revokeObjectURL(stagedUrl); }, [stagedUrl]);
 
+  if (!authLoading && !user) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
+        <h1 className="font-display text-3xl font-extrabold text-white">Log in to use the studio</h1>
+        <p className="mt-2 text-slate-400">
+          The studio requires an account so your jobs, files, and credits stay private.
+          New accounts start with 10 free credits.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link to="/login" className="rounded-full bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]">Log in</Link>
+          <Link to="/register" className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10">Create account</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <Link to="/" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
@@ -156,6 +176,12 @@ export default function Studio() {
         larger images are processed in tiles. AI-generated detail is approximate, not a
         guaranteed recovery of original detail.
       </p>
+      {user && (
+        <p className="mt-2 text-sm text-slate-300">
+          Credits: <span className="font-bold text-white">{user.credits}</span>
+          <span className="text-slate-500"> · 2x costs 1 credit, 4x costs 2 credits · failed or cancelled jobs refund automatically</span>
+        </p>
+      )}
 
       {notice && (
         <div className={`mt-4 flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm ${notice.kind === 'error' ? 'border-red-500/40 bg-red-500/10 text-red-200' : 'border-amber-500/40 bg-amber-500/10 text-amber-200'}`}>

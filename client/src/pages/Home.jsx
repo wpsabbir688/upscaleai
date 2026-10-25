@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import {
   UploadCloud, SlidersHorizontal, Layers, Calculator, ShieldCheck,
-  UserX, ArrowRight, Check, X, ChevronDown,
+  ArrowRight, Check, X, ChevronDown,
 } from 'lucide-react';
 import { useState } from 'react';
 import UploadZone from '../components/UploadZone.jsx';
@@ -26,8 +26,8 @@ const FEATURES = [
     text: 'Uploads live in private job folders and are deleted automatically after 24 hours. Nothing is posted to a public gallery.',
   },
   {
-    icon: UserX, title: 'No account needed',
-    text: 'v1 works without sign-in. Accounts, credits, and billing arrive in Stage 2 — nothing here pretends to bill you.',
+    icon: ShieldCheck, title: 'Private accounts & credits',
+    text: 'The studio requires an account so your jobs, files, and credits stay private to you. New accounts start with 10 free credits; failed or cancelled jobs refund automatically.',
   },
   {
     icon: UploadCloud, title: 'Batch + ZIP download',
@@ -54,7 +54,7 @@ const FAQS = [
   },
   {
     q: 'Do I need an account or payment?',
-    a: 'No. v1 has no accounts, credits, or payments. Those arrive in Stage 2, along with an admin dashboard.',
+    a: 'An account is required for the studio, so your jobs, files, and credits stay private. No payment is needed: every new account starts with 10 free credits (2x costs 1, 4x costs 2). Paid plans are coming soon and will only arrive with a verified payment gateway.',
   },
   {
     q: 'Which formats and sizes are supported?',
@@ -113,7 +113,7 @@ export default function Home() {
                 </a>
               </div>
               <p className="mt-4 text-xs text-slate-500">
-                No account needed in v1 · 2x and 4x · PNG, JPEG, WebP · files deleted after 24 hours
+                Account required · 10 free credits on signup · 2x and 4x · PNG, JPEG, WebP · files deleted after 24 hours
               </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 shadow-2xl backdrop-blur">
@@ -176,18 +176,19 @@ export default function Home() {
         </ol>
       </section>
 
-      {/* Pricing teaser: explicitly example plans */}
+      {/* Pricing: Free is the live plan; paid tiers are coming soon, no checkout exists */}
       <section id="pricing" className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <h2 className="font-display text-2xl font-extrabold text-white sm:text-3xl">Pricing</h2>
         <p className="mt-2 max-w-2xl text-slate-400">
-          The plans below are examples only — pricing is not final and no payment is taken in v1.
-          Everything in the studio is available without an account today.
+          Free is the live plan today: every new account starts with 10 credits (2x costs 1,
+          4x costs 2, failed or cancelled jobs refund). Pro and Premium are coming soon —
+          no payment is taken and there is no checkout until a payment gateway is verified.
         </p>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {[
-            ['Free', 'Example', ['2x and 4x enhancement', 'Standard queue', '24-hour file retention'], false],
-            ['Pro', 'Example', ['Everything in Free', 'Batch processing + ZIP', 'Priority queue', 'Extended history'], true],
-            ['Premium', 'Example', ['Everything in Pro', 'Highest usage limits', 'Advanced presets', 'Longest retention'], false],
+            ['Free', 'Live now', ['10 credits on signup', '2x and 4x enhancement', 'Standard queue', '24-hour file retention'], false],
+            ['Pro', 'Coming soon', ['Everything in Free', 'Batch processing + ZIP', 'Priority queue', 'Extended history'], true],
+            ['Premium', 'Coming soon', ['Everything in Pro', 'Highest usage limits', 'Advanced presets', 'Longest retention'], false],
           ].map(([name, badge, feats, highlight]) => (
             <div key={name}
               className={`rounded-3xl border p-6 ${highlight ? 'border-[#2563eb]/60 bg-[#2563eb]/10' : 'border-white/10 bg-white/[0.03]'}`}>
@@ -201,9 +202,11 @@ export default function Home() {
                     <Check size={16} className="mt-0.5 shrink-0 text-emerald-400" /> {f}
                   </li>
                 ))}
-                <li className="flex items-start gap-2 text-sm text-slate-500">
-                  <X size={16} className="mt-0.5 shrink-0" /> Payments — arrives in Stage 2
-                </li>
+                {name !== 'Free' && (
+                  <li className="flex items-start gap-2 text-sm text-slate-500">
+                    <X size={16} className="mt-0.5 shrink-0" /> No checkout yet — paid tiers need a verified payment gateway first
+                  </li>
+                )}
               </ul>
               <Link to="/studio"
                 className="mt-5 block rounded-full bg-[#2563eb] py-2.5 text-center text-sm font-semibold text-white hover:bg-[#1d4ed8]">

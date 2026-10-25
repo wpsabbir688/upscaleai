@@ -6,6 +6,95 @@ async function jsonOrThrow(res) {
   return data;
 }
 
+// Session lives in an HttpOnly cookie (set by the server); the frontend
+// never sees or stores a token. Same-origin fetches send the cookie.
+async function postJson(path, body) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function register(email, password) {
+  return postJson('/auth/register', { email, password });
+}
+
+export async function login(email, password) {
+  return postJson('/auth/login', { email, password });
+}
+
+export async function logout() {
+  return postJson('/auth/logout', {});
+}
+
+export async function getMe() {
+  const res = await fetch(`${BASE}/auth/me`);
+  if (res.status === 401 || res.status === 403) return null;
+  return jsonOrThrow(res);
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  return postJson('/auth/change-password', { currentPassword, newPassword });
+}
+
+export async function deleteAccount(password) {
+  const res = await fetch(`${BASE}/auth/account`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function getCredits() {
+  const res = await fetch(`${BASE}/credits`);
+  return jsonOrThrow(res);
+}
+
+// Admin (server enforces role; the UI only hides these links).
+export async function adminOverview() {
+  const res = await fetch(`${BASE}/admin/overview`);
+  return jsonOrThrow(res);
+}
+
+export async function adminUsers() {
+  const res = await fetch(`${BASE}/admin/users`);
+  return jsonOrThrow(res);
+}
+
+export async function adminJobs() {
+  const res = await fetch(`${BASE}/admin/jobs`);
+  return jsonOrThrow(res);
+}
+
+export async function adminHealth() {
+  const res = await fetch(`${BASE}/admin/health`);
+  return jsonOrThrow(res);
+}
+
+export async function adminAudit() {
+  const res = await fetch(`${BASE}/admin/audit`);
+  return jsonOrThrow(res);
+}
+
+export async function adminSuspend(id) {
+  return postJson(`/admin/users/${id}/suspend`, {});
+}
+
+export async function adminUnsuspend(id) {
+  return postJson(`/admin/users/${id}/unsuspend`, {});
+}
+
+export async function adminSetPlan(id, plan) {
+  return postJson(`/admin/users/${id}/plan`, { plan });
+}
+
+export async function adminAdjustCredits(id, delta, reason) {
+  return postJson(`/admin/users/${id}/credits`, { delta, reason });
+}
+
 export async function getCapabilities() {
   const res = await fetch(`${BASE}/capabilities`);
   return jsonOrThrow(res);

@@ -28,4 +28,11 @@ export const config = {
   // Tile size 0 = direct pass. Inputs over 256px on a side use tile 256.
   directMaxSide: 256,
   tileSize: 256,
+  // Stage 2 credits (server-side only; the frontend never decides a balance).
+  freeCredits: Number(process.env.FREE_CREDITS || 10),
+  creditCost: { 2: 1, 4: 2 },
+  sessionDays: 7,
+  // Set COOKIE_SECURE=1 when serving over HTTPS in production. Local dev
+  // is plain HTTP, so the cookie must not carry Secure there.
+  cookieSecure: process.env.COOKIE_SECURE === '1',
 };

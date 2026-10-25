@@ -16,6 +16,7 @@ const { createApp } = await import('../src/index.js');
 
 let base;
 let server;
+let cookie;
 
 test.before(async () => {
   const { app } = createApp(process.env.DB_PATH);
@@ -23,6 +24,14 @@ test.before(async () => {
     const s = app.listen(0, () => resolve(s));
   });
   base = `http://localhost:${server.address().port}`;
+  // Stage 2: uploads require login. One account for the whole v1 suite.
+  const res = await fetch(`${base}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'v1@example.com', password: 'v1-password-123' }),
+  });
+  assert.equal(res.status, 201);
+  cookie = res.headers.get('set-cookie').split(';')[0];
 });
 
 test.after(async () => {
@@ -30,18 +39,25 @@ test.after(async () => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
+function authed(path, opts = {}) {
+  return fetch(`${base}${path}`, {
+    ...opts,
+    headers: { ...(opts.headers || {}), Cookie: cookie },
+  });
+}
+
 async function postJob(filePath, scale = 4, name) {
   const fd = new FormData();
   fd.append('image', new Blob([fs.readFileSync(filePath)]), name || path.basename(filePath));
   fd.append('scale', String(scale));
-  const res = await fetch(`${base}/api/jobs`, { method: 'POST', body: fd });
+  const res = await authed('/api/jobs', { method: 'POST', body: fd });
   return { status: res.status, body: await res.json() };
 }
 
 async function waitFor(id, wanted, timeoutMs = 300000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
-    const res = await fetch(`${base}/api/jobs/${id}`);
+    const res = await authed(`/api/jobs/${id}`);
     const job = await res.json();
     if (wanted.includes(job.status)) return job;
     await new Promise((r) => setTimeout(r, 3000));
@@ -55,6 +71,17 @@ test('health + capabilities', async () => {
   const caps = await (await fetch(`${base}/api/capabilities`)).json();
   assert.deepEqual(caps.scales, [2, 4]);
   assert.ok(caps.disabledScales.includes(20));
+  assert.equal(caps.authRequired, true);
+});
+
+test('unauthenticated uploads are rejected', async () => {
+  const fd = new FormData();
+  fd.append('image', new Blob([fs.readFileSync(path.join(fixtures, 'small.png'))]), 'small.png');
+  fd.append('scale', '4');
+  const res = await fetch(`${base}/api/jobs`, { method: 'POST', body: fd });
+  assert.equal(res.status, 401);
+  const list = await fetch(`${base}/api/jobs`);
+  assert.equal(list.status, 401);
 });
 
 test('rejects non-image content', async () => {
@@ -101,7 +128,7 @@ test('job lifecycle: queued -> done, download has correct dimensions', async () 
   assert.equal(done.status, 'done', `worker error: ${done.error}`);
   assert.equal(done.outputW, 256);
   assert.equal(done.outputH, 256);
-  const dl = await fetch(`${base}/api/jobs/${body.id}/download`);
+  const dl = await authed(`/api/jobs/${body.id}/download`);
   assert.equal(dl.status, 200);
   const buf = Buffer.from(await dl.arrayBuffer());
   assert.deepEqual([...buf.subarray(0, 8)],
@@ -120,7 +147,7 @@ test('failed jobs surface a real error, never a fake success', async () => {
   const failed = await waitFor(body.id, ['failed', 'done']);
   assert.equal(failed.status, 'failed');
   assert.ok(failed.error && failed.error.length > 0);
-  const dl = await fetch(`${base}/api/jobs/${body.id}/download`);
+  const dl = await authed(`/api/jobs/${body.id}/download`);
   assert.equal(dl.status, 409); // no output for a failed job
 });
 
@@ -131,11 +158,11 @@ test('queued job can be cancelled; done job cancel is a no-op', async () => {
   assert.equal(first.status, 201);
   const second = await postJob(path.join(fixtures, 'small.png'), 4);
   assert.equal(second.status, 201);
-  const cancelled = await (await fetch(`${base}/api/jobs/${second.body.id}/cancel`, { method: 'POST' })).json();
+  const cancelled = await (await authed(`/api/jobs/${second.body.id}/cancel`, { method: 'POST' })).json();
   assert.equal(cancelled.status, 'cancelled');
   const done = await waitFor(first.body.id, ['done', 'failed']);
   assert.equal(done.status, 'done');
-  const noop = await (await fetch(`${base}/api/jobs/${first.body.id}/cancel`, { method: 'POST' })).json();
+  const noop = await (await authed(`/api/jobs/${first.body.id}/cancel`, { method: 'POST' })).json();
   assert.equal(noop.status, 'done');
 });
 
@@ -145,7 +172,7 @@ test('batch upload + ZIP of completed outputs', async () => {
     fd.append('images', new Blob([fs.readFileSync(path.join(fixtures, f))]), f);
   }
   fd.append('scale', '2');
-  const res = await fetch(`${base}/api/batch`, { method: 'POST', body: fd });
+  const res = await authed('/api/batch', { method: 'POST', body: fd });
   assert.equal(res.status, 201);
   const batch = await res.json();
   assert.equal(batch.jobs.length, 2);
@@ -155,7 +182,7 @@ test('batch upload + ZIP of completed outputs', async () => {
     assert.equal(done.status, 'done', `worker error: ${done.error}`);
     assert.equal(done.outputW, 128);
   }
-  const zip = await fetch(`${base}/api/batch/${batch.batchId}/zip`);
+  const zip = await authed(`/api/batch/${batch.batchId}/zip`);
   assert.equal(zip.status, 200);
   assert.match(zip.headers.get('content-type'), /application\/zip/);
   const buf = Buffer.from(await zip.arrayBuffer());

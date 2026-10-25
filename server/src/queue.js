@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { config } from './config.js';
 import { imageSize } from 'image-size';
@@ -114,11 +115,56 @@ export class JobQueue {
 
   finish(id, status, error) {
     const now = Date.now();
+    const row = this.db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    // Only a job that actually consumed (or reserved) credits can be
+    // refunded, and only once: the refunded flag + the transaction below
+    // make a double refund impossible even if finish runs twice.
+    const wasActive = row && (row.status === 'queued' || row.status === 'processing');
     const expires = status === 'done' || status === 'failed' || status === 'cancelled'
       ? now + config.retentionMs : now;
     this.db.prepare(
       'UPDATE jobs SET status = ?, error = ?, updated_at = ?, expires_at = ? WHERE id = ?')
       .run(status, error, now, expires, id);
+    if (wasActive && (status === 'failed' || status === 'cancelled') &&
+        row.credit_cost > 0 && !row.credit_refunded && row.user_id) {
+      // Credits are only spent on completed jobs: failed and cancelled jobs
+      // refund automatically (cancelled-before-processing consumed nothing,
+      // so charging for it would be wrong).
+      const user = this.db.prepare('SELECT id FROM users WHERE id = ?').get(row.user_id);
+      if (user) {
+        this.db.exec('BEGIN IMMEDIATE');
+        try {
+          const fresh = this.db.prepare(
+            'SELECT credit_refunded FROM jobs WHERE id = ?').get(id);
+          if (fresh && !fresh.credit_refunded) {
+            this.db.prepare('UPDATE users SET credits = credits + ?, updated_at = ? WHERE id = ?')
+              .run(row.credit_cost, now, row.user_id);
+            this.db.prepare(`INSERT INTO credit_ledger
+              (id, user_id, delta, reason, job_id, created_at) VALUES (?, ?, ?, 'refund', ?, ?)`)
+              .run(crypto.randomUUID(), row.user_id, row.credit_cost, id, now);
+            this.db.prepare('UPDATE jobs SET credit_refunded = 1 WHERE id = ?').run(id);
+          }
+          this.db.exec('COMMIT');
+        } catch {
+          this.db.exec('ROLLBACK');
+        }
+      }
+    }
+  }
+
+  // Admin health snapshot (no user data).
+  health() {
+    const lastDone = this.db.prepare(
+      "SELECT updated_at FROM jobs WHERE status = 'done' ORDER BY updated_at DESC LIMIT 1").get();
+    const lastFailed = this.db.prepare(
+      "SELECT updated_at, error FROM jobs WHERE status = 'failed' ORDER BY updated_at DESC LIMIT 1").get();
+    return {
+      queueDepth: this.waiting.length,
+      runningJobId: this.running ? this.running.id : null,
+      lastCompletedAt: lastDone ? lastDone.updated_at : null,
+      lastErrorAt: lastFailed ? lastFailed.updated_at : null,
+      lastError: lastFailed ? lastFailed.error : null,
+    };
   }
 
   cancel(id) {
